@@ -249,39 +249,27 @@ final class Recs {
         }
         // Trending opens with "Can't decide?": Film to Watch, to swipe through movies (when the TV has it).
         if (kind == null && installed(FILM_TO_WATCH)) {
-            Pick swipe = swipeCard(list, out, hour);
-            if (swipe != null) {
-                out.add(0, swipe);
-                if (out.size() > CARDS) out.remove(out.size() - 1);
-            }
+            out.add(0, swipeCard());
+            if (out.size() > CARDS) out.remove(out.size() - 1);
         }
         return out;
     }
 
     /** Film to Watch (github.com/0xProbabillity/film-to-watch-tv): a movie picker that you swipe through. */
     private static final String FILM_TO_WATCH = "com.filmtowatch.tv";
+    /** The "Can't decide?" card's picture, drawn (CardArt), never downloaded. */
+    private static final String SWIPE_ART = "/app-filmtowatch";
     private volatile Pick swipe;
 
-    /**
-     * The "Can't decide?" card: its picture is a trending title that isn't in the row (never the card next to it), a
-     * new one each hour. The same object while the picture stays, like the other cards.
-     */
-    private Pick swipeCard(List<Pick> list, List<Pick> row, long hour) {
-        java.util.Set<String> inRow = new java.util.HashSet<>();
-        for (Pick p : row) inRow.add(key(p));
-        String backdrop = null;
-        for (int i = 0; i < list.size() && backdrop == null; i++) {
-            Pick p = list.get((int) ((hour * 3 + CARDS + i) % list.size()));
-            if (!inRow.contains(key(p)) && p.backdrop != null) backdrop = p.backdrop;
-        }
-        if (backdrop == null) return null;
+    /** The "Can't decide?" card (the same object, like the other cards, until the language changes). */
+    private Pick swipeCard() {
         Pick s = swipe;
-        if (s != null && backdrop.equals(s.backdrop) && s.language.equals(Ui.language)) return s;
+        if (s != null && s.language.equals(Ui.language)) return s;
         s = new Pick();
         s.kind = "app";
         s.title = Ui.tr("Indeciso?", "Can't decide?");
         s.meta = Ui.tr("Deslize no Film to Watch", "Swipe with Film to Watch");
-        s.backdrop = backdrop;
+        s.backdrop = SWIPE_ART;
         s.app = "filmtowatch";
         s.pkg = FILM_TO_WATCH;
         s.detailed = true;
@@ -389,6 +377,7 @@ final class Recs {
     }
 
     private boolean hasImage(Pick p) {
+        if ("app".equals(p.kind)) return true;      // drawn, not downloaded (CardArt)
         return p.backdrop != null && imageFile(p).exists();
     }
 
@@ -843,6 +832,7 @@ final class Recs {
     // MARK: - Images (TMDB originals on disk, up to 24 so the whole list fits; this hour's kept ready in memory)
 
     private void download(Pick p) throws IOException {
+        if ("app".equals(p.kind)) return;           // drawn, not downloaded (CardArt)
         File f = imageFile(p);
         if (f.exists()) return;
         //noinspection ResultOfMethodCallIgnored
@@ -880,16 +870,21 @@ final class Recs {
         }
         File f = imageFile(p);
         try {
-            download(p);
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(f.getPath(), bounds);
-            BitmapFactory.Options opts = new BitmapFactory.Options();
-            opts.inSampleSize = 1;
-            while (bounds.outWidth / (opts.inSampleSize * 2) >= Backdrop.W) opts.inSampleSize *= 2;
-            Bitmap b = BitmapFactory.decodeFile(f.getPath(), opts);
-            if (b == null) throw new IOException("unreadable image");
-            AppLog.w("backdrop \u201c" + p.title + "\u201d: " + bounds.outWidth + "×" + bounds.outHeight);
+            Bitmap b;
+            if ("app".equals(p.kind)) {
+                b = CardArt.filmToWatch(Backdrop.W, Backdrop.H);   // drawn, not downloaded
+            } else {
+                download(p);
+                BitmapFactory.Options bounds = new BitmapFactory.Options();
+                bounds.inJustDecodeBounds = true;
+                BitmapFactory.decodeFile(f.getPath(), bounds);
+                BitmapFactory.Options opts = new BitmapFactory.Options();
+                opts.inSampleSize = 1;
+                while (bounds.outWidth / (opts.inSampleSize * 2) >= Backdrop.W) opts.inSampleSize *= 2;
+                b = BitmapFactory.decodeFile(f.getPath(), opts);
+                if (b == null) throw new IOException("unreadable image");
+                AppLog.w("backdrop \u201c" + p.title + "\u201d: " + bounds.outWidth + "×" + bounds.outHeight);
+            }
             boolean forLight = light;
             Backdrop backdrop = Backdrop.make(b, forLight);
             if (forLight != light) return;   // the design changed midway: this one is stale
