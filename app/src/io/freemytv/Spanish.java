@@ -22,6 +22,8 @@ final class Spanish {
             case "24h change": return "variación en 24 h";
             case "For You": return "Para ti";
             case "Learn today": return "Aprender hoy";
+            case "Can't decide?": return "¿No sabes qué ver?";
+            case "Swipe with Film to Watch": return "Desliza en Film to Watch";
             case "Highlights": return "Resumen";
             case "Couldn't open ": return "No se pudo abrir ";
             case " of ": return " de ";

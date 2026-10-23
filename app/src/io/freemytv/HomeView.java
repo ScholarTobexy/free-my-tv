@@ -45,7 +45,7 @@ import java.util.function.Consumer;
 
 /**
  * The home screen, styled after the Apple TV app with the macOS 27 glass:
- *  - at the top left, the "For You" title and the tabs (Explore, Movies, Shows); at the top right, icon-only glass
+ *  - at the top left, the "For You" title (or the date and a verse) and the tabs (Trending, Movies, Shows…); at the top right, icon-only glass
  *    buttons (Live TV, HDMI Inputs, Settings), with the focused one's name below it, and the small crypto quotes
  *    (logo + price) at the right end of the tab row;
  *  - a row of equal cards (5 on screen; it slides left and right) with the titles recommended for right now in the
@@ -98,11 +98,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final float L_PLATTER_TOP = 814, L_TILE_H = 126;
     private static final float L_DATE_BASE = 330, L_CLOCK_BASE = 540, L_WEATHER_BASE = 626, L_QUOTES_BASE = 694;
     private static final int L_INK = 0xFF1D1D1F, L_DIM = 0xFF6E6E73, L_FAINT = 0xFF8E8E93;
-    private static final String[] TABS = {"Explorar", "Filmes", "Séries", "Infantil", "Stremio", "Futebol", "Notícias"};
-    private static final String[] TABS_RU = {"Обзор", "Фильмы", "Сериалы", "Детям", "Stremio", "Футбол", "Новости"};
-    private static final String[] TABS_EN = {"Explore", "Movies", "Shows", "Kids", "Stremio", "Soccer", "News"};
-    private static final String[] TABS_ES = {"Explorar", "Películas", "Series", "Infantil", "Stremio", "Fútbol", "Noticias"};
-    private static final String[] TABS_DE = {"Entdecken", "Filme", "Serien", "Kinder", "Stremio", "Fußball", "Nachrichten"};
+    private static final String[] TABS = {"Em alta", "Filmes", "Séries", "Infantil", "Stremio", "Futebol", "Notícias"};
+    private static final String[] TABS_RU = {"В тренде", "Фильмы", "Сериалы", "Детям", "Stremio", "Футбол", "Новости"};
+    private static final String[] TABS_EN = {"Trending", "Movies", "Shows", "Kids", "Stremio", "Soccer", "News"};
+    private static final String[] TABS_ES = {"Tendencias", "Películas", "Series", "Infantil", "Stremio", "Fútbol", "Noticias"};
+    private static final String[] TABS_DE = {"Trends", "Filme", "Serien", "Kinder", "Stremio", "Fußball", "Nachrichten"};
     private static final String[] TAB_KIND = Recs.TAB_KINDS;
     /** In topRects and topFocus: the tabs first, then the three icon-only buttons. */
     private static final int TAB_COUNT = TAB_KIND.length;

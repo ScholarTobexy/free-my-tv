@@ -29,6 +29,8 @@ final class Russian {
             case "24h change": return "изменение за 24 ч";
             case "For You": return "Для вас";
             case "Learn today": return "Учимся сегодня";
+            case "Can't decide?": return "Не знаете, что смотреть?";
+            case "Swipe with Film to Watch": return "Листайте в Film to Watch";
             case "Highlights": return "Лучшие моменты";
             case "← → to move · OK to drop · Back to cancel": return "← → — переместить · OK — оставить · Назад — отмена";
             case "Moving ": return "Перемещение: ";
@@ -128,7 +130,7 @@ final class Russian {
             case "Disney and Globoplay: the TV itself controls those buttons.": return "Кнопками Disney и Globoplay управляет сам телевизор.";
             case "YouTube, Prime Video and Google Play: the TV itself controls those buttons.": return "Кнопками YouTube, Prime Video и Google Play управляет сам телевизор.";
             case "These are the TCL remote's buttons: on this TV, the buttons work as they always did.": return "Это кнопки пульта TCL: на этом телевизоре они работают как прежде.";
-            case "Explore": return "Обзор";
+            case "Trending": return "В тренде";
             case "Movies": return "Фильмы";
             case "Shows": return "Сериалы";
             case "Clear": return "Ясно";

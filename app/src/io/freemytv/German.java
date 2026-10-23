@@ -22,6 +22,8 @@ final class German {
             case "24h change": return "Änderung in 24 h";
             case "For You": return "Für dich";
             case "Learn today": return "Heute lernen";
+            case "Can't decide?": return "Unentschlossen?";
+            case "Swipe with Film to Watch": return "Wischen mit Film to Watch";
             case "Highlights": return "Highlights";
             case "Couldn't open ": return "Konnte nicht öffnen: ";
             case " of ": return " von ";

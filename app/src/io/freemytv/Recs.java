@@ -45,9 +45,10 @@ final class Recs {
         String kind;            // "movie" or "tv"
         String title, backdrop, meta = "", app, pkg;
         boolean detailed;
-        String tab;             // KIDS or STREMIO: only on that tab (null: Explore, Movies, Shows)
+        String tab;             // KIDS or STREMIO: only on that tab (null: Trending, Movies, Shows)
         String video;           // "Learn today": the YouTube video id (kind "video", no TMDB id)
         String imdb;            // what Stremio knows the title by ("tt0111161")
+        String language = "";   // "Can't decide?": the language its text is in
     }
 
     interface Listener { void onRecs(); }
@@ -64,10 +65,13 @@ final class Recs {
     static final String STREMIO_APP = "com.stremio.one";
     /** The Soccer and News tabs: the newest videos of a few YouTube channels (Feeds). */
     static final String SOCCER = "soccer", NEWS = "news";
-    /** The home screen tabs' kinds, in order (Explore, Movies, Shows, Kids, Stremio, Soccer, News). */
+    /** The home screen tabs' kinds, in order (Trending, Movies, Shows, Kids, Stremio, Soccer, News). */
     static final String[] TAB_KINDS = {null, "movie", "tv", KIDS, STREMIO, SOCCER, NEWS};
-    /** The tabs' names for config.properties "tabs" (which to show; empty: all). Explore always shows. */
-    private static final String[] TAB_NAMES = {"explore", "movies", "shows", "kids", "stremio", "soccer", "news"};
+    /**
+     * The tabs' names for config.properties "tabs" (which to show; empty: all). The first one, Trending (called
+     * "explore" before, which still works), always shows.
+     */
+    private static final String[] TAB_NAMES = {"trending", "movies", "shows", "kids", "stremio", "soccer", "news"};
     private static final boolean[] TAB_ON = tabsOn(Config.TABS);
 
     private static boolean[] tabsOn(String setting) {
@@ -127,6 +131,7 @@ final class Recs {
         SERVICE_NAME.put("cbcgem", "CBC Gem");
         SERVICE_NAME.put("youtube", "YouTube");
         SERVICE_NAME.put("stremio", "Stremio");
+        SERVICE_NAME.put("filmtowatch", "Film to Watch");
     }
     /** Country for "what streams where" (config.properties "tmdb_region", e.g. US, GB, BR). */
     private static final String REGION = Config.TMDB_REGION.trim().toUpperCase(Locale.ROOT);
@@ -229,7 +234,7 @@ final class Recs {
             if (java.util.Objects.equals(p.tab, tab) && (kind == null || tab != null || kind.equals(p.kind))
                     && (!p.detailed || (p.pkg != null && have.computeIfAbsent(p.pkg, this::installed)))) list.add(p);   // app missing: skip
         }
-        // The Kids tab opens with today's video to learn from, then two picks.
+        // The Kids tab opens with today's video to learn from, then the picks.
         Pick learn = kids ? learnToday() : null;
         List<Pick> out = new ArrayList<>();
         if (learn != null) out.add(learn);
@@ -242,7 +247,47 @@ final class Recs {
             Pick p = list.get((int) ((hour * 3 + i) % list.size()));
             if (seen.add(franchise(p.title))) out.add(p);
         }
+        // Trending opens with "Can't decide?": Film to Watch, to swipe through movies (when the TV has it).
+        if (kind == null && installed(FILM_TO_WATCH)) {
+            Pick swipe = swipeCard(list, out, hour);
+            if (swipe != null) {
+                out.add(0, swipe);
+                if (out.size() > CARDS) out.remove(out.size() - 1);
+            }
+        }
         return out;
+    }
+
+    /** Film to Watch (github.com/0xProbabillity/film-to-watch-tv): a movie picker that you swipe through. */
+    private static final String FILM_TO_WATCH = "com.filmtowatch.tv";
+    private volatile Pick swipe;
+
+    /**
+     * The "Can't decide?" card: its picture is a trending title that isn't in the row (never the card next to it), a
+     * new one each hour. The same object while the picture stays, like the other cards.
+     */
+    private Pick swipeCard(List<Pick> list, List<Pick> row, long hour) {
+        java.util.Set<String> inRow = new java.util.HashSet<>();
+        for (Pick p : row) inRow.add(key(p));
+        String backdrop = null;
+        for (int i = 0; i < list.size() && backdrop == null; i++) {
+            Pick p = list.get((int) ((hour * 3 + CARDS + i) % list.size()));
+            if (!inRow.contains(key(p)) && p.backdrop != null) backdrop = p.backdrop;
+        }
+        if (backdrop == null) return null;
+        Pick s = swipe;
+        if (s != null && backdrop.equals(s.backdrop) && s.language.equals(Ui.language)) return s;
+        s = new Pick();
+        s.kind = "app";
+        s.title = Ui.tr("Indeciso?", "Can't decide?");
+        s.meta = Ui.tr("Deslize no Film to Watch", "Swipe with Film to Watch");
+        s.backdrop = backdrop;
+        s.app = "filmtowatch";
+        s.pkg = FILM_TO_WATCH;
+        s.detailed = true;
+        s.language = Ui.language;
+        swipe = s;
+        return s;
     }
 
     private volatile List<Pick> learnList;
@@ -419,8 +464,10 @@ final class Recs {
         List<Pick> out = new ArrayList<>();
         if (!hasKey(context)) return out;
         java.util.Set<String> seen = new java.util.HashSet<>();
-        // Not the "Learn today" video: the screensaver's caption is a movie's or a show's.
-        for (Pick p : wanted()) if (p.video == null && hasImage(p) && seen.add(franchise(p.title))) out.add(p);
+        // Not the "Learn today" video or "Can't decide?": the screensaver's caption is a movie's or a show's.
+        for (Pick p : wanted()) {
+            if (p.video == null && !"app".equals(p.kind) && hasImage(p) && seen.add(franchise(p.title))) out.add(p);
+        }
         Map<String, Boolean> have = new HashMap<>();
         for (Pick p : picks) {
             if (p.detailed && p.pkg != null && have.computeIfAbsent(p.pkg, this::installed) && hasImage(p)
@@ -473,7 +520,7 @@ final class Recs {
         });
     }
 
-    /** This hour's picks for the four tabs (Explore, Movies, Shows, Kids), without repeats. */
+    /** This hour's picks for the tabs that are on, without repeats. */
     List<Pick> wanted() {
         List<Pick> out = new ArrayList<>();
         java.util.Set<String> seen = new java.util.HashSet<>();
@@ -487,6 +534,7 @@ final class Recs {
     /** Movies and shows are numbered separately on TMDB: a pick is identified by type + number (and the Kids tab). */
     static String key(Pick p) {
         if (p.video != null) return "video:" + p.video;
+        if ("app".equals(p.kind)) return "app:" + p.pkg + ":" + p.backdrop;     // "Can't decide?": a new picture each hour
         return (p.tab != null ? p.tab + ":" : "") + p.kind + ":" + p.id;
     }
 
@@ -863,7 +911,7 @@ final class Recs {
     }
 
     void trim() {
-        // Explore's picks stay: the home screen opens on that tab, so its cards are never gray when you come back.
+        // Trending's picks stay: the home screen opens on that tab, so its cards are never gray when you come back.
         java.util.Set<String> keep = new java.util.HashSet<>();
         for (Pick p : now(null)) if (p.backdrop != null) keep.add(p.backdrop);
         synchronized (images) {
